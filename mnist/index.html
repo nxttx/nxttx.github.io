@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Import model</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css" />
+
+    <style>
+      img {
+        border-radius: 25px;
+        max-width: 25vw;
+      }
+    </style>
+  </head>
+
+  <body>
+    <section class="hero is-fullheight" style="background-color: #353b48;">
+
+      <div class="hero-body">
+        <div class="container has-text-centered">
+          <div class="file is-primary is-inline-block">
+            <label class="file-label">
+              <input class="file-input" accept="image/*" type='file' id="imgInp" >
+              <span class="file-cta">
+                <span class="file-label">
+                  Upload
+                </span>
+              </span>
+            </label>
+          </div>
+          <br><br><br><br>
+          <figure class="image is-inline-block">
+            <img src="image.png" id="image" />
+          </figure>
+          <br><br><br><br>
+
+          <button class="button" onclick="predict()">Predict</button>
+          <br><br>
+          <p id="prediction" class="has-text-white"></p>
+          
+        </div>
+      </div>
+    </section>
+
+    <script>
+      let model;
+      setTimeout(async function () {
+        model = await tf.loadLayersModel("model/model.json");
+      }, 1);
+
+      imgInp.onchange = evt => {
+        const [file] = imgInp.files;
+        if (file) {
+          document.getElementById('image').src = URL.createObjectURL(file);
+        }
+      };
+
+      async function predict() {
+        const imageBuffer = document.getElementById("image");
+
+        let tensor = tf.browser
+          .fromPixels(imageBuffer, 1)
+          .resizeNearestNeighbor([28, 28])
+          .toFloat()
+          .expandDims();
+      
+
+
+        let predictions = await model.predict(tensor).data();
+        console.log(Array.from(predictions))
+        let top5 = Array.from(predictions)
+          .map(function (p, i) {
+
+            return {
+              probability: p,
+              className: i
+            };
+          }).sort(function (a, b) {
+            return b.probability - a.probability;
+          }).slice(0, 5);
+
+        document.getElementById('prediction').innerHTML = "";
+        top5.forEach(element => {
+          let probability = (element.probability * 100) + "";
+          probability = probability.substring(0, 5);
+          document.getElementById('prediction').innerHTML +=  probability + "% -> " + element.className + "<br>";
+        });
+      }
+    </script>
+  </body>
+
+</html>
